@@ -1,0 +1,235 @@
+/* ============================================================
+   CUBO 3D DE VERDAD (Three.js)
+   ============================================================
+   Este archivo es independiente del resto del sitio. Dibuja un
+   modelo 3D real dentro de #cube3d-container, que gira solo y
+   que se puede arrastrar con el mouse (o el dedo) para verlo
+   desde otro ángulo.
+
+   Cambia de forma según el cubo activo:
+     - "3x3", "4x4", "5x5"   -> cubo NxN de verdad
+     - "mirror3x3"           -> cubo 3x3 con piezas de distinto
+                                 tamaño, como el Mirror Cube real
+     - "pyraminx"            -> pirámide (tetraedro), no un cubo
+
+   No toca el resto del diseño: solo dibuja dentro del contenedor
+   que le indiques. Para usarlo en otra página, basta con:
+
+     <div id="mi-contenedor" style="width:300px; height:300px;"></div>
+     <script type="module" src="js/rubik3d.js"></script>
+     <script>
+       // más adelante, para cambiar qué figura muestra:
+       window.setActiveCubeVisual("4x4");
+     </script>
+   ============================================================ */
+
+import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
+import { OrbitControls } from "https://unpkg.com/three@0.160.0/examples/jsm/controls/OrbitControls.js";
+
+const CONTAINER_ID = "cube3d-container";
+
+/* Colores del cubo, iguales a la paleta del sitio */
+const COLORS = {
+  right:  0xff4438, // +x rojo
+  left:   0xff8a26, // -x naranja
+  top:    0xffffff, // +y blanco
+  bottom: 0xffc93c, // -y amarillo
+  front:  0x2fb170, // +z verde
+  back:   0x2e63e7, // -z azul
+};
+const INNER = 0x18151c; // caras internas, no visibles al armar el cubo
+
+let scene, camera, renderer, controls, container;
+let currentGroup = null;
+let currentType = null;
+let resizeObserver;
+
+/* ------------------------------------------------------------
+   Construir un cubo NxN real (3x3, 4x4, 5x5...)
+   ------------------------------------------------------------ */
+function buildLayeredCube(n, mirror){
+  const group = new THREE.Group();
+  const gap = 0.06;
+  const size = 1;
+  const offset = (n - 1) / 2;
+
+  for (let x = 0; x < n; x++){
+    for (let y = 0; y < n; y++){
+      for (let z = 0; z < n; z++){
+        // saltear las piezas internas (no se ven, ahorra geometría)
+        const isOuter = x === 0 || x === n-1 || y === 0 || y === n-1 || z === 0 || z === n-1;
+        if (!isOuter) continue;
+
+        let w = size, h = size, d = size;
+        if (mirror){
+          // variar un poco el tamaño de cada capa, como el Mirror Cube real
+          const layerScale = [0.78, 1, 1.28];
+          w = size * layerScale[x % 3];
+          h = size * layerScale[y % 3];
+          d = size * layerScale[z % 3];
+        }
+
+        const materials = [
+          new THREE.MeshStandardMaterial({ color: x === n-1 ? COLORS.right  : INNER, roughness: 0.5, metalness: mirror ? 0.35 : 0 }),
+          new THREE.MeshStandardMaterial({ color: x === 0   ? COLORS.left   : INNER, roughness: 0.5, metalness: mirror ? 0.35 : 0 }),
+          new THREE.MeshStandardMaterial({ color: y === n-1 ? COLORS.top    : INNER, roughness: 0.5, metalness: mirror ? 0.35 : 0 }),
+          new THREE.MeshStandardMaterial({ color: y === 0   ? COLORS.bottom : INNER, roughness: 0.5, metalness: mirror ? 0.35 : 0 }),
+          new THREE.MeshStandardMaterial({ color: z === n-1 ? COLORS.front  : INNER, roughness: 0.5, metalness: mirror ? 0.35 : 0 }),
+          new THREE.MeshStandardMaterial({ color: z === 0   ? COLORS.back   : INNER, roughness: 0.5, metalness: mirror ? 0.35 : 0 }),
+        ];
+
+        const geo = new THREE.BoxGeometry(w - gap, h - gap, d - gap);
+        const mesh = new THREE.Mesh(geo, materials);
+        mesh.position.set(
+          (x - offset) * (size + gap * 0.3),
+          (y - offset) * (size + gap * 0.3),
+          (z - offset) * (size + gap * 0.3)
+        );
+        group.add(mesh);
+      }
+    }
+  }
+
+  const scaleFit = 3 / n; // que todos los tamaños (3x3..5x5) ocupen un espacio similar
+  group.scale.setScalar(scaleFit);
+  return group;
+}
+
+/* ------------------------------------------------------------
+   Construir un Pyraminx simplificado: un tetraedro coloreado
+   por cara, para diferenciarlo claramente de un cubo.
+   ------------------------------------------------------------ */
+function buildPyraminx(){
+  const group = new THREE.Group();
+
+  const geo = new THREE.TetrahedronGeometry(1.7, 0);
+  const mat = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.55 });
+
+  const posAttr = geo.attributes.position;
+  const colorArray = [];
+  const palette = [0xffc93c, 0xff4438, 0x2fb170, 0x2e63e7];
+  const triCount = posAttr.count / 3;
+  for (let t = 0; t < triCount; t++){
+    const c = new THREE.Color(palette[t % palette.length]);
+    for (let v = 0; v < 3; v++) colorArray.push(c.r, c.g, c.b);
+  }
+  geo.setAttribute("color", new THREE.Float32BufferAttribute(colorArray, 3));
+
+  const mesh = new THREE.Mesh(geo, mat);
+  group.add(mesh);
+  group.rotation.x = 0.4;
+  return group;
+}
+
+/* ------------------------------------------------------------
+   Elegir qué construir según el id del cubo
+   ------------------------------------------------------------ */
+function buildGroupFor(cubeType){
+  switch (cubeType){
+    case "4x4": return buildLayeredCube(4, false);
+    case "5x5": return buildLayeredCube(5, false);
+    case "mirror3x3": return buildLayeredCube(3, true);
+    case "pyraminx": return buildPyraminx();
+    case "3x3":
+    default: return buildLayeredCube(3, false);
+  }
+}
+
+/* ------------------------------------------------------------
+   Reemplazar el modelo mostrado (se puede llamar en cualquier
+   momento para cambiar de figura sin recrear toda la escena)
+   ------------------------------------------------------------ */
+function showCube(cubeType){
+  if (!scene) return;
+  if (currentType === cubeType && currentGroup) return;
+
+  if (currentGroup){
+    scene.remove(currentGroup);
+    currentGroup.traverse(obj => {
+      if (obj.geometry) obj.geometry.dispose();
+      if (obj.material){
+        (Array.isArray(obj.material) ? obj.material : [obj.material]).forEach(m => m.dispose());
+      }
+    });
+  }
+
+  currentGroup = buildGroupFor(cubeType);
+  currentType = cubeType;
+  scene.add(currentGroup);
+}
+
+/* ------------------------------------------------------------
+   Inicializar escena, cámara, luces y controles de arrastre
+   ------------------------------------------------------------ */
+function init(){
+  container = document.getElementById(CONTAINER_ID);
+  if (!container) return; // si esta página no tiene el contenedor, no hace nada
+
+  scene = new THREE.Scene();
+
+  camera = new THREE.PerspectiveCamera(
+    42,
+    container.clientWidth / container.clientHeight,
+    0.1,
+    100
+  );
+  camera.position.set(4, 3.6, 5.4);
+
+  renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+  renderer.setSize(container.clientWidth, container.clientHeight);
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  container.appendChild(renderer.domElement);
+
+  scene.add(new THREE.AmbientLight(0xffffff, 0.75));
+  const key = new THREE.DirectionalLight(0xffffff, 0.9);
+  key.position.set(5, 8, 6);
+  scene.add(key);
+  const fill = new THREE.DirectionalLight(0xffffff, 0.3);
+  fill.position.set(-6, -2, -4);
+  scene.add(fill);
+
+  controls = new OrbitControls(camera, renderer.domElement);
+  controls.enableDamping = true;
+  controls.dampingFactor = 0.08;
+  controls.enableZoom = false;
+  controls.enablePan = false;
+  controls.autoRotate = true;
+  controls.autoRotateSpeed = 2.2;
+
+  showCube(currentType || "3x3");
+
+  resizeObserver = new ResizeObserver(() => {
+    if (!container.clientWidth || !container.clientHeight) return;
+    camera.aspect = container.clientWidth / container.clientHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(container.clientWidth, container.clientHeight);
+  });
+  resizeObserver.observe(container);
+
+  animate();
+}
+
+function animate(){
+  requestAnimationFrame(animate);
+  controls.update();
+  renderer.render(scene, camera);
+}
+
+/* ------------------------------------------------------------
+   API pública: window.setActiveCubeVisual("4x4") cambia la figura
+   ------------------------------------------------------------ */
+window.setActiveCubeVisual = function (cubeType){
+  const wanted = cubeType || "3x3";
+  if (!scene){
+    // la escena todavía no está lista: guardamos el pedido para cuando init() corra
+    currentType = wanted;
+    return;
+  }
+  showCube(wanted);
+};
+
+if (document.readyState === "loading"){
+  document.addEventListener("DOMContentLoaded", init);
+} else {
+  init();
+}
