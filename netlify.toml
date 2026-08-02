@@ -1,0 +1,8 @@
+[build]
+  publish = "."
+  command = ""
+
+[[headers]]
+  for = "/assets/video/*"
+  [headers.values]
+    Accept-Ranges = "bytes"
