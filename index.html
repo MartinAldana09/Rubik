@@ -8,7 +8,7 @@
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700;800&family=Inter:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="css/styles.css">
 <link rel="icon" type="image/svg+xml" href="assets/favicon.svg">
 </head>
@@ -25,7 +25,7 @@
       Método Capas
     </a>
     <nav class="mainnav">
-      <a href="#metodo">Método</a>
+      <a href="#menu">Cubos</a>
       <a href="#pasos">Pasos</a>
       <a href="#galeria">Galería</a>
       <a href="#agregar-contenido">Cómo subir contenido</a>
@@ -36,30 +36,38 @@
 <main id="top">
 
   <!-- ===================== HERO ===================== -->
-  <section class="hero">
+  <section class="hero" id="tutorial-top">
     <div class="wrap">
       <div>
-        <p class="eyebrow">Tutorial · Método por capas</p>
-        <h1>Armá el cubo Rubik <em>capa por capa</em>, sin memoria fotográfica.</h1>
-        <p class="lead">
+        <p class="eyebrow" id="hero-eyebrow-text">🧩 Tutorial · Método por capas</p>
+        <h1>Armá el <span class="hl" id="hero-title-cube">Cubo 3×3</span> paso a paso, sin memoria fotográfica.</h1>
+        <p class="lead" id="hero-lead">
           Seis pasos, cada uno con su video, sus fotos y su explicación.
-          Empezá por la cruz blanca y terminá permutando la última capa.
         </p>
         <div class="cta-row">
           <a class="btn btn-primary" href="#pasos">Empezar el tutorial</a>
-          <a class="btn btn-ghost" href="#metodo">Ver el método</a>
+          <a class="btn btn-ghost" href="#cube-menu">Elegir otro cubo</a>
         </div>
       </div>
-      <div class="cube-stage" aria-hidden="true">
-        <div class="cube3d">
-          <div class="face front"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>
-          <div class="face back"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>
-          <div class="face right"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>
-          <div class="face left"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>
-          <div class="face top"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>
-          <div class="face bottom"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>
+      <div class="sticker-stage" aria-hidden="true">
+        <div class="sticker-sheet">
+          <div class="sticker"></div><div class="sticker"></div><div class="sticker"></div>
+          <div class="sticker"></div><div class="sticker"></div><div class="sticker"></div>
+          <div class="sticker"></div><div class="sticker"></div><div class="sticker"></div>
         </div>
       </div>
+    </div>
+  </section>
+
+  <!-- ===================== MENÚ DE CUBOS ===================== -->
+  <section class="cube-menu-section" id="menu">
+    <div class="wrap">
+      <div class="section-head reveal">
+        <p class="eyebrow">Elegí tu cubo</p>
+        <h2>¿Cuál querés armar?</h2>
+        <p>Tocá una tarjeta para ver su tutorial. Podés cambiar de cubo cuando quieras.</p>
+      </div>
+      <div class="cube-menu" id="cube-menu"></div>
     </div>
   </section>
 
@@ -68,8 +76,8 @@
     <div class="wrap">
       <div class="section-head reveal">
         <p class="eyebrow">Índice</p>
-        <h2>Seis etapas, en orden</h2>
-        <p>Cada tarjeta te lleva directo al paso. El color de cada una indica sobre qué cara estás trabajando en ese momento.</p>
+        <h2>Las etapas del método</h2>
+        <p>Elegí un cubo arriba. Cada tarjeta te lleva directo al paso correspondiente, y el color indica sobre qué cara estás trabajando.</p>
       </div>
       <div class="index-grid" id="index-grid"></div>
     </div>
@@ -81,6 +89,7 @@
       <div class="section-head reveal">
         <p class="eyebrow">Tutorial</p>
         <h2>Paso a paso</h2>
+        <p id="pasos-cube-title" class="pasos-heading"></p>
         <p>Mirá el video, revisá las fotos de referencia y leé la explicación antes de intentarlo con tu cubo.</p>
       </div>
       <div class="steps" id="steps-list"></div>
@@ -106,25 +115,27 @@
         <p class="eyebrow">Para vos</p>
         <h2>Cómo agregar tus videos, fotos y textos</h2>
       </div>
-      <div class="notes">
+      <div class="notes plate">
         <h3>No hace falta tocar el diseño</h3>
         <ol>
-          <li>Abrí el archivo <code>js/content.js</code>.</li>
-          <li>Para cada paso, cambiá <code>titulo</code>, <code>subtitulo</code> y <code>descripcion</code> por tu propio texto.</li>
+          <li>Abrí el archivo <code>js/content.js</code>. Ahí vive un array llamado <code>CUBES</code>, con un bloque por cada cubo (3×3, 4×4, 5×5, Mirror, Pyraminx).</li>
+          <li>Para editar un cubo existente, buscá su bloque (empieza con <code>id: "3x3"</code>, <code>id: "4x4"</code>, etc.) y cambiá <code>titulo</code>, <code>subtitulo</code> y <code>descripcion</code> de cada paso dentro de <code>steps</code>.</li>
           <li>
-            Para el video: si lo subiste a YouTube, poné el ID del video en
+            Para el video de cada paso: si lo subiste a YouTube, poné el ID en
             <code>video.id</code> (lo que va después de <code>watch?v=</code> en la URL).
-            Si preferís un archivo de video propio, cambiá <code>tipo</code> a
-            <code>"local"</code> y poné la ruta en <code>src</code>, por ejemplo
-            <code>assets/video/paso1.mp4</code>.
+            Si preferís un archivo propio, cambiá <code>tipo</code> a
+            <code>"local"</code> y la ruta en <code>src</code>, por ejemplo
+            <code>assets/video/4x4-paso1.mp4</code>.
           </li>
           <li>
             Para las fotos: guardá tus imágenes dentro de <code>assets/img/</code>
-            y listalas en el array <code>imagenes</code> de cada paso, por ejemplo
-            <code>"assets/img/paso1-a.jpg"</code>.
+            y listalas en el array <code>imagenes</code> de cada paso.
+          </li>
+          <li>
+            <strong>Para agregar un cubo nuevo</strong>: copiá un bloque completo de <code>CUBES</code> (desde su <code>{</code> hasta su <code>}</code>), pegalo antes del cierre de la lista, y cambiá <code>id</code>, <code>nombre</code>, <code>dificultad</code>, <code>color</code>, <code>resumen</code> y los <code>steps</code>. Aparece solo como una tarjeta nueva en el menú.
           </li>
           <li>Para la galería general, editá el array <code>GALERIA</code> al final del mismo archivo.</li>
-          <li>Guardá el archivo y volvé a subir la carpeta a Netlify (o hacé push si lo conectaste a un repo de GitHub).</li>
+          <li>Guardá el archivo y subí el cambio a GitHub (o volvé a arrastrar la carpeta a Netlify).</li>
         </ol>
       </div>
     </div>
